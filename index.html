@@ -29,7 +29,12 @@
             color: red;
             font-weight: bold;
         }
+        canvas {
+            margin-top: 30px;
+        }
     </style>
+    <!-- Add Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -38,23 +43,31 @@
         <div id="alert" class="alert"></div>
         <button onclick="startMonitoring()">Start Monitoring</button>
         <button onclick="stopMonitoring()">Stop Monitoring</button>
+
+        <!-- Time Series Chart -->
+        <canvas id="pressureChart" width="600" height="300"></canvas>
     </div>
 
     <script>
+        // Initial settings and variables
         let pressureInterval;
         let currentPressure = 50; // Initial pressure value
         let pressureLowerLimit = 30; // Minimum safe pressure in PSI
         let pressureUpperLimit = 70; // Maximum safe pressure in PSI
 
-        // Function to simulate the pump pressure readings
+        // Time series chart variables
+        let timeLabels = [];
+        let pressureData = [];
+        let timeCounter = 0; // Used to increment time labels (in seconds)
+
+        // Get a random pressure value that simulates pump pressure fluctuation
         function getPressure() {
-            // Simulate pressure variations within a random range
             let variation = Math.random() * 10 - 5; // Random variation between -5 and +5 PSI
             currentPressure = Math.max(pressureLowerLimit, Math.min(pressureUpperLimit, currentPressure + variation));
             return currentPressure;
         }
 
-        // Function to update the pressure display and alert system
+        // Update the pressure display and alert system
         function updatePressureDisplay() {
             const pressureElement = document.getElementById('pressure');
             const alertElement = document.getElementById('alert');
@@ -74,16 +87,72 @@
                 pressureElement.className = 'pressure-display normal';
                 alertElement.textContent = '';
             }
+
+            // Add new data point to the time series chart
+            timeCounter++;
+            timeLabels.push(timeCounter);
+            pressureData.push(pressure);
+
+            // Update chart data
+            pressureChart.update();
         }
 
-        // Function to start monitoring
+        // Create a new Chart.js line chart for time series monitoring
+        const ctx = document.getElementById('pressureChart').getContext('2d');
+        const pressureChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timeLabels,
+                datasets: [{
+                    label: 'Pump Pressure (PSI)',
+                    data: pressureData,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                    fill: true,
+                    lineTension: 0.1,
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)'
+                        }
+                    },
+                    y: {
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            stepSize: 10
+                        },
+                        title: {
+                            display: true,
+                            text: 'Pressure (PSI)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                }
+            }
+        });
+
+        // Start the pressure monitoring
         function startMonitoring() {
             if (!pressureInterval) {
                 pressureInterval = setInterval(updatePressureDisplay, 1000); // Update every second
             }
         }
 
-        // Function to stop monitoring
+        // Stop the pressure monitoring
         function stopMonitoring() {
             clearInterval(pressureInterval);
             pressureInterval = null;
